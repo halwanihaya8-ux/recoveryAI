@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecoveryAI — HRV Prediction Engine</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Plotly for charts -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PARTICLE CANVAS (background)
+════════════════════════════════════════════════════════════════ -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="var(--teal)" stroke-width="1.5" opacity="0.4"/>
+        <path d="M4 16h4l3-6 4 12 3-9 3 5 3-2h4" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">RecoveryAI</span>
+      <span class="brand-sub">Wearables · XGBoost · SHAP</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <span class="nav-label">NAVIGATION</span>
+    <button class="nav-btn active" data-tab="dataset">
+      <span class="nav-icon">📊</span> Dataset Overview
+    </button>
+    <button class="nav-btn" data-tab="model">
+      <span class="nav-icon">🧠</span> Model Deep Dive
+    </button>
+    <button class="nav-btn" data-tab="simulator">
+      <span class="nav-icon">⚡</span> Live Simulator
+    </button>
+  </nav>
+
+  <div class="sidebar-stats">
+    <span class="nav-label">QUICK STATS</span>
+    <div class="stat-row"><span>Total Samples</span><span class="stat-val teal" id="stat-samples">4,200</span></div>
+    <div class="stat-row"><span>Test R²</span><span class="stat-val teal" id="stat-r2">0.5485</span></div>
+    <div class="stat-row"><span>Test MAE</span><span class="stat-val coral" id="stat-mae">7.77 ms</span></div>
+    <div class="stat-row"><span>CV Folds</span><span class="stat-val">5</span></div>
+    <div class="stat-row"><span>SHAP Features</span><span class="stat-val">25 / 35</span></div>
+  </div>
+
+  <div class="sidebar-theme">
+    <span class="nav-label">COLOR THEME</span>
+    <button class="theme-btn active" data-theme="dark">Cyber (Dark)</button>
+    <button class="theme-btn" data-theme="light">Corporate (Light)</button>
+  </div>
+
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>
+    <span class="status-text">System Status: <strong>Operational</strong></span>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── Top header ─────────────────────────────────────────── -->
+  <header class="top-header">
+    <div class="header-left">
+      <h1 class="page-title">Next-Day HRV Prediction Engine</h1>
+      <div class="header-tags">
+        <span class="tag">XGBoost Regressor</span>
+        <span class="tag">SHAP Feature Selection</span>
+        <span class="tag">Group K-Fold CV</span>
+        <span class="tag">Wearables Health Dataset</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="live-badge"><span class="live-dot"></span> LIVE</span>
+    </div>
+  </header>
+
+  <!-- ── Tab bar ────────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="dataset">📊 Dataset Overview</button>
+    <button class="tab-btn" data-tab="model">🧠 Model Deep Dive</button>
+    <button class="tab-btn" data-tab="simulator">⚡ Live Simulator</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: DATASET OVERVIEW
+  ══════════════════════════════════════════════════════════ -->
+  <section class="tab-panel active" id="panel-dataset">
+
+    <!-- KPI row -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Total Windowed Samples</div>
+          <div class="kpi-value teal">4,200</div>
+          <div class="kpi-sub">After 5-day windowing + dropna</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Target Variable</div>
+          <div class="kpi-value teal">hrv_rmssd_ms</div>
+          <div class="kpi-sub">Next-day HRV (shifted −1)</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔬</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Raw Features</div>
+          <div class="kpi-value teal">7</div>
+          <div class="kpi-sub">→ 35 windowed → 25 SHAP-selected</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🪟</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Window Size</div>
+          <div class="kpi-value teal">5 days</div>
+          <div class="kpi-sub">Sliding window per user</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row 1 -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Train / Test Split by User</h3>
+          <p class="chart-sub">80/20 user-stratified split — no user appears in both sets</p>
+        </div>
+        <div id="chart-split" class="chart-container"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Feature Engineering Pipeline</h3>
+          <p class="chart-sub">7 raw features × 5-day window = 35 inputs → top 25 via SHAP</p>
+        </div>
+        <div id="chart-pipeline" class="chart-container"></div>
+      </div>
+    </div>
+
+    <!-- Charts row 2 -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Rolling Baseline Window (14-day)</h3>
+          <p class="chart-sub">Baseline adapts over time to prevent future leakage</p>
+        </div>
+        <div id="chart-rolling" class="chart-container"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Data Cleaning Steps</h3>
+          <p class="chart-sub">Filters applied before feature engineering</p>
+        </div>
+        <div id="cleaning-list" class="cleaning-list"></div>
+      </div>
+    </div>
+
+    <!-- Dataset summary table -->
+    <div class="chart-card full-width">
+      <div class="chart-header"><h3>Dataset Summary</h3><p class="chart-sub">Full pipeline configuration</p></div>
+      <div class="table-grid">
+        <table class="data-table"><tbody id="dataset-table-left"></tbody></table>
+        <table class="data-table"><tbody id="dataset-table-right"></tbody></table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: MODEL DEEP DIVE
+  ══════════════════════════════════════════════════════════ -->
+  <section class="tab-panel" id="panel-model">
+
+    <!-- Model KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">📐</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Test R² Score</div>
+          <div class="kpi-value teal" id="m-r2">0.5485</div>
+          <div class="kpi-sub">Variance explained by model</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📏</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Test MAE</div>
+          <div class="kpi-value coral" id="m-mae">7.769 ms</div>
+          <div class="kpi-sub">Mean absolute error on HRV</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📉</div>
+        <div class="kpi-body">
+          <div class="kpi-label">Test RMSE</div>
+          <div class="kpi-value coral" id="m-rmse">9.708 ms</div>
+          <div class="kpi-sub">Root mean squared error</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔁</div>
+        <div class="kpi-body">
+          <div class="kpi-label">CV Mean R²</div>
+          <div class="kpi-value gold" id="m-cv">0.5599</div>
+          <div class="kpi-sub">±0.056 across 5 folds</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scatter + Residuals -->
+    <div class="chart-row">
+      <div class="chart-card wide">
+        <div class="chart-header">
+          <h3>Actual vs. Predicted HRV</h3>
+          <p class="chart-sub">Test set scatter — perfect model would lie on the diagonal</p>
+        </div>
+        <div id="chart-scatter" class="chart-container tall"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Residual Distribution</h3>
+          <p class="chart-sub">Prediction errors (actual − predicted) — ideally centred at 0</p>
+        </div>
+        <div id="chart-residuals" class="chart-container tall"></div>
+      </div>
+    </div>
+
+    <!-- SHAP features + group radar -->
+    <div class="chart-row">
+      <div class="chart-card wide">
+        <div class="chart-header">
+          <h3>Top 15 SHAP Features</h3>
+          <p class="chart-sub">Mean |SHAP| on validation set — most influential windowed features</p>
+        </div>
+        <div id="chart-shap" class="chart-container tall"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>SHAP Importance by Feature Group</h3>
+          <p class="chart-sub">Aggregated across all 5 time-steps per raw feature</p>
+        </div>
+        <div id="chart-radar" class="chart-container tall"></div>
+      </div>
+    </div>
+
+    <!-- CV folds -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Group K-Fold CV — R² per Fold</h3>
+          <p class="chart-sub">Each fold uses a different user group for validation</p>
+        </div>
+        <div id="chart-cv" class="chart-container"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>XGBoost Hyperparameters</h3>
+          <p class="chart-sub">Base model (feature selection) vs. final model (prediction)</p>
+        </div>
+        <div id="hyperparam-grid" class="hyperparam-grid"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: LIVE SIMULATOR
+  ══════════════════════════════════════════════════════════ -->
+  <section class="tab-panel" id="panel-simulator">
+
+    <div class="info-banner">
+      <span class="info-icon">ℹ️</span>
+      <span><strong>How it works:</strong> Enter your last 5 days of raw wearable readings below.
+      The backend computes all engineered features (z-scores, baselines, EWM, sleep debt, HRV trend, recovery ratio)
+      and passes them through the trained XGBoost model to estimate your next-day HRV.</span>
+    </div>
+
+    <div class="sim-layout">
+
+      <!-- Input panel -->
+      <div class="sim-inputs chart-card">
+        <div class="chart-header">
+          <h3>5-Day Wearable History</h3>
+          <p class="chart-sub">Enter raw values for each of the last 5 days (Day 1 = oldest, Day 5 = today)</p>
+        </div>
+
+        <!-- Day labels -->
+        <div class="day-header-row">
+          <div class="input-label-col"></div>
+          <div class="day-labels">
+            <span>Day 1</span><span>Day 2</span><span>Day 3</span><span>Day 4</span><span>Day 5 (Today)</span>
+          </div>
+        </div>
+
+        <!-- HRV row -->
+        <div class="input-row">
+          <div class="input-label-col">
+            <span class="input-name">HRV (ms)</span>
+            <span class="input-hint">hrv_rmssd_ms</span>
+          </div>
+          <div class="input-cells">
+            <input type="number" class="day-input" id="hrv-0" value="52" min="10" max="120" step="0.1" />
+            <input type="number" class="day-input" id="hrv-1" value="55" min="10" max="120" step="0.1" />
+            <input type="number" class="day-input" id="hrv-2" value="58" min="10" max="120" step="0.1" />
+            <input type="number" class="day-input" id="hrv-3" value="54" min="10" max="120" step="0.1" />
+            <input type="number" class="day-input" id="hrv-4" value="60" min="10" max="120" step="0.1" />
+          </div>
+        </div>
+
+        <!-- Heart rate row -->
+        <div class="input-row">
+          <div class="input-label-col">
+            <span class="input-name">Heart Rate (bpm)</span>
+            <span class="input-hint">avg_hr_day_bpm</span>
+          </div>
+          <div class="input-cells">
+            <input type="number" class="day-input" id="hr-0" value="70" min="30" max="200" step="1" />
+            <input type="number" class="day-input" id="hr-1" value="68" min="30" max="200" step="1" />
+            <input type="number" class="day-input" id="hr-2" value="66" min="30" max="200" step="1" />
+            <input type="number" class="day-input" id="hr-3" value="71" min="30" max="200" step="1" />
+            <input type="number" class="day-input" id="hr-4" value="65" min="30" max="200" step="1" />
+          </div>
+        </div>
+
+        <!-- Sleep row -->
+        <div class="input-row">
+          <div class="input-label-col">
+            <span class="input-name">Sleep (hours)</span>
+            <span class="input-hint">sleep_duration_hours</span>
+          </div>
+          <div class="input-cells">
+            <input type="number" class="day-input" id="sleep-0" value="7.5" min="0" max="15" step="0.1" />
+            <input type="number" class="day-input" id="sleep-1" value="6.8" min="0" max="15" step="0.1" />
+            <input type="number" class="day-input" id="sleep-2" value="8.0" min="0" max="15" step="0.1" />
+            <input type="number" class="day-input" id="sleep-3" value="7.2" min="0" max="15" step="0.1" />
+            <input type="number" class="day-input" id="sleep-4" value="7.9" min="0" max="15" step="0.1" />
+          </div>
+        </div>
+
+        <!-- Steps row -->
+        <div class="input-row">
+          <div class="input-label-col">
+            <span class="input-name">Steps</span>
+            <span class="input-hint">steps</span>
+          </div>
+          <div class="input-cells">
+            <input type="number" class="day-input" id="steps-0" value="8200" min="0" max="50000" step="100" />
+            <input type="number" class="day-input" id="steps-1" value="9100" min="0" max="50000" step="100" />
+            <input type="number" class="day-input" id="steps-2" value="7500" min="0" max="50000" step="100" />
+            <input type="number" class="day-input" id="steps-3" value="10200" min="0" max="50000" step="100" />
+            <input type="number" class="day-input" id="steps-4" value="8800" min="0" max="50000" step="100" />
+          </div>
+        </div>
+
+        <div class="sim-actions">
+          <button id="run-btn" class="run-btn">
+            <span id="run-btn-text">⚡ Predict Next-Day HRV</span>
+            <span id="run-btn-spinner" class="spinner hidden"></span>
+          </button>
+          <button id="reset-btn" class="reset-btn">↺ Reset</button>
+        </div>
+
+        <!-- API URL config -->
+        <div class="api-config">
+          <label class="api-label">Flask API URL</label>
+          <input type="text" id="api-url" class="api-input" value="http://localhost:5000" placeholder="http://localhost:5000" />
+        </div>
+
+        <div id="error-banner" class="error-banner hidden"></div>
+      </div>
+
+      <!-- Result panel -->
+      <div class="sim-result chart-card" id="result-panel">
+        <div class="chart-header">
+          <h3>Prediction Result</h3>
+          <p class="chart-sub">Next-day HRV estimate + readiness classification</p>
+        </div>
+
+        <div id="result-placeholder" class="result-placeholder">
+          <div class="placeholder-icon">💓</div>
+          <p>Enter your 5-day history and click<br/><strong>Predict Next-Day HRV</strong></p>
+        </div>
+
+        <div id="result-content" class="result-content hidden">
+          <div class="result-score-block">
+            <div class="result-label">PREDICTED NEXT-DAY HRV</div>
+            <div class="result-score" id="result-score">— ms</div>
+            <div class="result-zone-badge" id="result-zone">—</div>
+            <div class="result-description" id="result-description"></div>
+            <div class="result-ci" id="result-ci"></div>
+          </div>
+
+          <div class="result-metrics">
+            <div class="result-metric">
+              <span class="rm-label">Personal Baseline</span>
+              <span class="rm-value teal" id="result-baseline">—</span>
+            </div>
+            <div class="result-metric">
+              <span class="rm-label">Z-Score vs Baseline</span>
+              <span class="rm-value" id="result-z">—</span>
+            </div>
+            <div class="result-metric">
+              <span class="rm-label">Model R²</span>
+              <span class="rm-value gold" id="result-r2">0.5485</span>
+            </div>
+            <div class="result-metric">
+              <span class="rm-label">Model MAE</span>
+              <span class="rm-value coral" id="result-mae">7.77 ms</span>
+            </div>
+          </div>
+
+          <div class="shap-insight-box" id="shap-box">
+            <div class="shap-title">🔍 Feature Insight</div>
+            <div class="shap-text" id="shap-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Readiness zones legend -->
+    <div class="chart-row">
+      <div class="chart-card full-width">
+        <div class="chart-header"><h3>Readiness Classification Logic</h3>
+          <p class="chart-sub">Based on predicted HRV z-score relative to your 14-day personal baseline</p>
+        </div>
+        <div class="zone-legend">
+          <div class="zone-card excellent">
+            <div class="zone-dot"></div>
+            <div class="zone-name">Excellent</div>
+            <div class="zone-range">z ≥ −0.5</div>
+            <div class="zone-desc">Fully recovered. Ready for high-strain training.</div>
+          </div>
+          <div class="zone-card good">
+            <div class="zone-dot"></div>
+            <div class="zone-name">Good</div>
+            <div class="zone-range">−1.0 ≤ z &lt; −0.5</div>
+            <div class="zone-desc">Well recovered. Normal training recommended.</div>
+          </div>
+          <div class="zone-card fair">
+            <div class="zone-dot"></div>
+            <div class="zone-name">Fair</div>
+            <div class="zone-range">−1.5 ≤ z &lt; −1.0</div>
+            <div class="zone-desc">Adequately recovered. Stick to your usual routine.</div>
+          </div>
+          <div class="zone-card poor">
+            <div class="zone-dot"></div>
+            <div class="zone-name">Poor</div>
+            <div class="zone-range">z &lt; −1.5</div>
+            <div class="zone-desc">HRV significantly below baseline. Prioritize rest.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

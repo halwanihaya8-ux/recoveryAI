@@ -1,0 +1,112 @@
+{
+  "window_size": 5,
+  "features_raw": [
+    "hrv_z",
+    "hr_z",
+    "sleep_z",
+    "strain_ewm",
+    "sleep_debt",
+    "hrv_trend",
+    "recovery_ratio"
+  ],
+  "top_features": [
+    "recovery_ratio_day2",
+    "recovery_ratio_day4",
+    "recovery_ratio_day3",
+    "recovery_ratio_day0",
+    "recovery_ratio_day1",
+    "hrv_z_day0",
+    "hrv_z_day2",
+    "hrv_z_day1",
+    "hrv_z_day4",
+    "hrv_z_day3",
+    "hr_z_day0",
+    "hr_z_day2",
+    "hr_z_day3",
+    "hr_z_day1",
+    "hrv_trend_day1",
+    "hr_z_day4",
+    "hrv_trend_day2",
+    "sleep_debt_day0",
+    "hrv_trend_day0",
+    "hrv_trend_day3",
+    "sleep_z_day3",
+    "strain_ewm_day3",
+    "sleep_z_day4",
+    "strain_ewm_day0",
+    "strain_ewm_day2"
+  ],
+  "feature_index": [
+    20,
+    34,
+    27,
+    6,
+    13,
+    0,
+    14,
+    7,
+    28,
+    21,
+    1,
+    15,
+    22,
+    8,
+    12,
+    29,
+    19,
+    4,
+    5,
+    26,
+    23,
+    24,
+    30,
+    3,
+    17
+  ],
+  "r2_test": 0.5484797933426959,
+  "mae_test": 7.769226605499405,
+  "rmse_test": 9.707936804450348,
+  "residual_std": 9.703246978262102,
+  "cv_r2_mean": 0.5598656596383266,
+  "cv_r2_std": 0.05594861778090221,
+  "feature_ranges": {
+    "hrv_z": {
+      "min": -34.455011301013556,
+      "max": 40.2864952437512
+    },
+    "hr_z": {
+      "min": -30.528037447708016,
+      "max": 30.603232587997738
+    },
+    "sleep_z": {
+      "min": -3.251880669622694,
+      "max": 3.2212424151697974
+    },
+    "strain_ewm": {
+      "min": 890.0456293967522,
+      "max": 24227.333333333332
+    },
+    "sleep_debt": {
+      "min": -2.8509302221493122,
+      "max": 2.8996594605205317
+    },
+    "hrv_trend": {
+      "min": -19.18768438685666,
+      "max": 16.57878624593988
+    },
+    "recovery_ratio": {
+      "min": 0.08332170271324683,
+      "max": 1.5761458673502966
+    }
+  },
+  "readiness_thresholds": {
+    "logic": "z_score_from_14d_baseline",
+    "optimal_min_z": -0.5,
+    "normal_min_z": -1.5,
+    "descriptions": {
+      "optimal": "\ud83d\udfe2 Optimal: Your body is fully recovered and ready for high strain.",
+      "normal": "\ud83d\udfe1 Normal: You are adequately recovered. Stick to your normal routine.",
+      "fatigued": "\ud83d\udd34 Fatigued: Your predicted HRV is significantly below baseline. Prioritize rest."
+    }
+  }
+}
