@@ -23,7 +23,8 @@ from datetime import datetime
 # ─────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app)
-
+from flask_cors import CORS
+CORS(app)
 # Model artifacts live in ./model/ relative to this file
 BASE = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(os.path.dirname(BASE), "model")
@@ -347,4 +348,4 @@ def predict():
 # RUN
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
